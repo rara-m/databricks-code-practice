@@ -3,3 +3,4 @@ __pycache__/
 Bin/
 .dev/
 social-preview.jpg
+.idea/

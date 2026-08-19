@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # Notebook 01: Environment Setup & Unity Catalog
 # MAGIC **Exam Coverage**: Sections 1 (Databricks Lakehouse Platform) & 5 (Data Governance)
@@ -138,10 +142,10 @@ managed_table_name = f"{CATALOG_NAME}.{BRONZE_SCHEMA}.customers_managed"
 
 # Write your code here:
 customers_df.write \
-
-
-
-
+    .format("delta") \
+    .mode("overwrite") \
+    .saveAsTable(managed_table_name)
+    
 print(f"Created managed table: {managed_table_name}")
 
 # COMMAND ----------
@@ -318,6 +322,17 @@ for group in required_groups:
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC | Group | Role | Typical Access |
+# MAGIC |-------|------|----------------|
+# MAGIC | `data_engineers` | Build and maintain pipelines | Full access to Bronze, Silver, Gold |
+# MAGIC | `data_analysts` | Create reports and dashboards | Read-only on Silver and Gold |
+# MAGIC | `data_scientists` | Build ML models | Read-only on Silver (feature engineering) |
+# MAGIC | `business_users` | View business reports | Read-only on specific Gold views |
+# MAGIC | `managers` | Oversee operations | Read-only on Gold (high-level metrics) |
+
+# COMMAND ----------
+
 # Example: Grant full access to data engineers on bronze schema
 
 spark.sql(f"""
@@ -325,6 +340,18 @@ spark.sql(f"""
 """)
 
 print("✅ Granted full access to data_engineers on bronze schema")
+
+spark.sql(f"""
+    GRANT ALL PRIVILEGES ON SCHEMA {CATALOG_NAME}.{SILVER_SCHEMA} TO `data_engineers`
+""")
+
+print("✅ Granted full access to data_engineers on silver schema")
+
+spark.sql(f"""
+    GRANT ALL PRIVILEGES ON SCHEMA {CATALOG_NAME}.{GOLD_SCHEMA} TO `data_engineers`
+""")
+
+print("✅ Granted full access to data_engineers on gold schema")
 
 # COMMAND ----------
 
@@ -347,9 +374,16 @@ print("✅ Granted full access to data_engineers on bronze schema")
 
 # TODO: Grant read-only access to data analysts on Gold schema
 
+# Grant SELECT on silver schema
+spark.sql(f"""
+    GRANT SELECT ON SCHEMA {CATALOG_NAME}.{SILVER_SCHEMA} TO `data_analysts`
+""")
+
+print("Granted read-only access to data_analysts on silver schema")
+
 # Grant SELECT on gold schema
 spark.sql(f"""
-
+    GRANT SELECT ON SCHEMA {CATALOG_NAME}.{GOLD_SCHEMA} TO `data_analysts`
 """)
 
 print("Granted read-only access to data_analysts on gold schema")
@@ -388,10 +422,14 @@ print("Granted read-only access to data_analysts on gold schema")
 # TODO: Grant read-only access to data scientists on Silver and Gold
 
 # 1. SELECT on silver schema
-
+spark.sql(f"""
+    GRANT SELECT ON SCHEMA {CATALOG_NAME}.{SILVER_SCHEMA} TO `data_scientists`
+""")
 
 # 2. SELECT on gold schema
-
+spark.sql(f"""
+    GRANT SELECT ON SCHEMA {CATALOG_NAME}.{GOLD_SCHEMA} TO `data_scientists`
+""")
 
 print("Granted read-only access to data_scientists on silver and gold")
 
